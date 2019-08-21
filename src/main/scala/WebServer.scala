@@ -24,43 +24,39 @@ case class CartridgeList(response: List[Cartridge])
 
 case class Address(pincode: Int, Street: String)
 case class Person(name: String, age: Int)
+//case class PersonList(response: List[Person])
 case class PersonNested(name: String, age: Int, address: Address)
 
 trait PersonMapper extends SprayJsonSupport {
   implicit val addressFormat = jsonFormat2(Address)
   implicit val personFormat = jsonFormat2(Person)
   implicit val personNestedFormat = jsonFormat3(PersonNested)
+//  implicit val personList = jsonFormat1(PersonList)
 }
 
-class MyRoutes extends PersonMapper {
+class MyRoutes extends PersonMapper with SprayJsonSupport {
   def getRoutes  = {
 
     val route: Route = concat(
       path("user" ) {
         concat(
           get {
-            import scala.concurrent.duration.Duration
-            withRequestTimeout(Duration.Zero) {
-              println("In get Request");
-              val person = new Person("A", 20)
-              var personList = List[Person]()
-              personList ::= Person("A", 2)
-              personList ::= Person("D", 5)
-              personList ::= Person("B", 3)
-              personList ::= Person("C", 4)
+            println("In get Request");
+            val person = new Person("A", 20)
+            var personList = List[Person]()
+            personList ::= Person("A", 2)
+            personList ::= Person("D", 5)
+            personList ::= Person("B", 3)
+            personList ::= Person("C", 4)
 
-              val connection = DBConnection.getConnection
-              val cartridgeDetails = DBConnection.executeQuery(connection, "select * from Cartridge")
-              var cartridgeList: List[Cartridge] = List[Cartridge]()
+            val connection = DBConnection.getConnection
+            val cartridgeDetails = DBConnection.executeQuery(connection, "select * from Cartridge")
+            var cartridgeList: List[Cartridge] = List[Cartridge]()
 
-              println("Cartridge List")
+            println("Cartridge List")
 
-              onSuccess(cartridgeDetails) { response =>
-                complete {
-                  personList
-                }
-              }
-              // complete(personList)
+            onSuccess(cartridgeDetails) { response =>
+              complete (personList)
             }
           },
           post {
@@ -97,7 +93,7 @@ class MyRoutes extends PersonMapper {
 
 }
 
-object WebServer extends App with PersonMapper {
+object WebServer extends App {
 //  def main1(args: Array[String]) {
 
     implicit val system = ActorSystem("my-system")
@@ -148,14 +144,14 @@ object WebServer extends App with PersonMapper {
 
      */
 
-    // val bindingFuture = Http().bindAndHandle(route, "localhost", 8080)
+    val bindingFuture = Http().bindAndHandle(route, "localhost", 8080)
 
     println(s"Server online at http://localhost:8080\nPress RETURN to stop...")
     StdIn.readLine()
 
-//    bindingFuture
-//      .flatMap(_.unbind())
-//      .onComplete(_ => system.terminate())
+    bindingFuture
+      .flatMap(_.unbind())
+      .onComplete(_ => system.terminate())
 
 //  }
 }
